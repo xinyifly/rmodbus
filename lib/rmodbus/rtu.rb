@@ -95,7 +95,7 @@ module ModBus
       loop do
         msg = read_rtu_request(io)
 
-        next if msg.nil?
+        break if msg.nil?
 
         if msg.getbyte(0) == @uid and msg[-2,2].unpack('n')[0] == crc16(msg[0..-3])
           pdu = yield msg
