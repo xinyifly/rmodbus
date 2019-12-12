@@ -38,5 +38,8 @@ module ModBus
         @response = response
       end
     end
+
+    class ResponseIgnored < ModBusException
+    end
   end
 end

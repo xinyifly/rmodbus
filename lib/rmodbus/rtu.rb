@@ -25,7 +25,8 @@ module ModBus
         when 0x80..0xff then
           msg += io.read(3)
         else
-          raise ModBus::Errors::IllegalFunction, "Illegal function: #{function_code}"
+          io.read
+          raise ModBus::Errors::ResponseIgnored, "Illegal function: #{function_code}"
       end
     end
 
@@ -60,10 +61,9 @@ module ModBus
       else
         log "Ignore package: don't match uid ID"
       end
-      loop do
-        #waite timeout
-        sleep(0.1)
-      end
+
+      @io.read
+      raise ModBus::Errors::ResponseIgnored, 'UID/CRC mismatch'
     end
 
     def read_rtu_request(io)
