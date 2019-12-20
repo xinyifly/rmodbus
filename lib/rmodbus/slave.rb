@@ -48,6 +48,10 @@ module ModBus
     end
     alias_method :read_coil, :read_coils
 
+    def read_coils_request(addr, ncoils)
+      "\x1" + addr.to_word + ncoils.to_word
+    end
+
     # Write a single coil
     #
     # @example
@@ -166,6 +170,10 @@ module ModBus
     end
     alias_method :read_holding_register, :read_holding_registers
 
+    def read_holding_registers_request(addr, nregs)
+      "\x3" + addr.to_word + nregs.to_word
+    end
+
     # Write a single holding register
     #
     # @example
@@ -232,6 +240,20 @@ module ModBus
         @lock.synchronize do
           send_pdu(request)
           check_response(request, read_pdu)
+        end
+      end
+    end
+
+    def batch_query(requests)
+      timeout do
+        @lock.synchronize do
+          Thread.new do
+            requests.each do |request|
+              send_pdu(request)
+              sleep 0.4
+            end
+          end
+          requests.map { |request| check_response(request, read_pdu) }
         end
       end
     end
