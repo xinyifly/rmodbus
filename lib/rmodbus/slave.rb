@@ -228,23 +228,12 @@ module ModBus
     # @raise [SlaveDeviceBus] server is engaged in processing a long duration program command
     # @raise [MemoryParityError] extended file area failed to pass a consistency check
     def query(request)
-      tried = 0
-      response = ""
-      begin
-        ::Timeout.timeout(@read_retry_timeout, ModBusTimeout) do
-          @lock.synchronize do
-            send_pdu(request)
-            response = read_pdu
-          end
+      timeout do
+        @lock.synchronize do
+          send_pdu(request)
+          check_response(request, read_pdu)
         end
-      rescue ModBusTimeout => err
-        log "Timeout of read operation: (#{@read_retries - tried})"
-        tried += 1
-        retry unless tried >= @read_retries
-        raise ModBusTimeout.new, "Timed out during read attempt"
       end
-
-      check_response(request, response)
     end
 
     private
@@ -313,6 +302,20 @@ module ModBus
       end
 
       raise ResponseMismatch.new(msg, request, response) if msg
+    end
+
+    def timeout
+      tried = 0
+      begin
+        Timeout.timeout(@read_retry_timeout, ModBusTimeout) do
+          yield
+        end
+      rescue ModBusTimeout
+        log "Timeout of read operation: (#{@read_retries - tried})"
+        tried += 1
+        retry unless tried >= @read_retries
+        raise ModBusTimeout.new, 'Timed out during read attempt'
+      end
     end
   end
 end
