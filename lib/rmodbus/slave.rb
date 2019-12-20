@@ -244,21 +244,26 @@ module ModBus
         raise ModBusTimeout.new, "Timed out during read attempt"
       end
 
-      return nil if response.size == 0
+      check_response(request, response)
+    end
+
+    private
+
+    def check_response(request, response)
+      return nil if response.size.zero?
 
       read_func = response.getbyte(0)
       if read_func >= 0x80
         exc_id = response.getbyte(1)
         raise Exceptions[exc_id] unless Exceptions[exc_id].nil?
 
-        raise ModBusException.new, "Unknown error"
+        raise ModBusException.new, 'Unknown error'
       end
 
       check_response_mismatch(request, response) if raise_exception_on_mismatch
       response[2..-1]
     end
 
-    private
     def check_response_mismatch(request, response)
       read_func = response.getbyte(0)
       data = response[2..-1]
